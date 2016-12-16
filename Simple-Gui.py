@@ -36,8 +36,8 @@ class makeGui:
             self.ping = "ping -c 1 {0}".format(self.pi)
 
         # Ping Pi
-        #status = self.pingPi()
-        status = False
+        status = self.pingPi()
+        #status = False
 
         # Create a webBus instance
         if status:
@@ -49,6 +49,7 @@ class makeGui:
         self.ccm = config.ccm           # ngccm emulator i2c address
         self.address = 0x19             # Qie Card in slot 1 i2c address (use for Toggle Igloo Power)
         self.fanoutStatus = 0           # 0 means don't use fanout board, 1 means use fanout board
+        self.channels = config.channels # Fanout channels
 
         # Create an instance of initialTests
         self.initialTest = initialTests()
@@ -447,10 +448,10 @@ class makeGui:
         self.experi_hyphenLine.pack()
 
         # Make a button to use Fanout Board
-        self.gpioSelect_bttn = Button(self.experi_subTop2_11_frame, command=self.useFanout,
+        self.useFanout_bttn = Button(self.experi_subTop2_11_frame, command=self.useFanout,
                           text="Use Fanout Board")
-        self.gpioSelect_bttn.configure(bg="CadetBlue1")
-        self.gpioSelect_bttn.pack()
+        self.useFanout_bttn.configure(bg="DeepSkyBlue3")
+        self.useFanout_bttn.pack()
 
         # Make a label for the GPIO selection
         self.gpioSelect_label = Label(self.experi_subTop2_7_frame, text="Select GPIO Option: ")
@@ -709,8 +710,10 @@ class makeGui:
         self.fanoutStatus = (self.fanoutStatus + 1) % 2
         if self.fanoutStatus == 0:
             print "Fanout baord option disabled."
+            self.useFanout_bttn.configure(bg="#ff3333")
         if self.fanoutStatus == 1:
             print "Fanout board option enabled."
+            self.useFanout_bttn.configure(bg="#33ff33")
 
     # Opens the proper GPIO slot. Used for programming cards.
     def gpioBttnPress(self):
@@ -724,34 +727,38 @@ class makeGui:
                             "J7 and J23" : [7, 23], "J8 and J24" : [8, 24],
                             "J9 and J25" : [9, 25], "J10 and J26" : [10, 26]}
 
+        # define gpioVal, jslots and gpioSelected based on selection
         gpioVal = jSlotDict[self.gpioChoiceVar.get()]
         self.jslots = dictStringToInts[self.gpioChoiceVar.get()]
         self.gpioSelected = True
 
-        self.myBus.write(self.ccm, [0x08]) # PCA9538 is bit 3 on ngccm mux
-        #power on and reset
-            #register 3 is control reg for i/o modes
-        self.myBus.write(self.gpio,[0x03,0x00]) # sets all GPIO pins to 'output' mode
-        self.myBus.write(self.gpio,[0x01,0x08])
-        self.myBus.write(self.gpio,[0x01,0x18]) # GPIO reset is 10
-        self.myBus.write(self.gpio,[0x01,0x08])
-    
-        #jtag selectors finnagling for slot 26
-        self.myBus.write(self.gpio,[0x01,gpioVal])
-        self.myBus.read(self.gpio,0x01)
-    
-        batch = self.myBus.sendBatch()
-
-        #print "GPIO Batch: {0}".format(batch)
+        # iterate through fanout board channels
+        for ch in self.channels:
+            self.myBus.write(self.fanout, [ch]) # write to fanout the value ch
+            self.myBus.write(self.ccm, [0x08]) # PCA9538 is bit 3 on ngccm mux
+            #power on and reset
+                #register 3 is control reg for i/o modes
+            self.myBus.write(self.gpio,[0x03,0x00]) # sets all GPIO pins to 'output' mode
+            self.myBus.write(self.gpio,[0x01,0x08])
+            self.myBus.write(self.gpio,[0x01,0x18]) # GPIO reset is 10
+            self.myBus.write(self.gpio,[0x01,0x08])
         
-        if (batch[-1] == "1 0"):
-            print "GPIO I2C Error: {0}".format(self.gpioChoiceVar.get())
-            self.gpioSelect_bttn.configure(bg="#ff3333")
-        elif (batch[-1] == "0 "+str(gpioVal)):
-            print 'GPIO selected: {0}'.format(self.gpioChoiceVar.get())
-            self.gpioSelect_bttn.configure(bg="#33ff33")
-        else:
-            print 'GPIO Choice Error... unexpected communication error!'
+            #jtag selectors finnagling for slot 26
+            self.myBus.write(self.gpio,[0x01,gpioVal])
+            self.myBus.read(self.gpio,0x01)
+        
+            batch = self.myBus.sendBatch()
+
+            #print "GPIO Batch: {0}".format(batch)
+            
+            if (batch[-1] == "1 0"):
+                print "GPIO I2C Error: {0}".format(self.gpioChoiceVar.get())
+                self.gpioSelect_bttn.configure(bg="#ff3333")
+            elif (batch[-1] == "0 "+str(gpioVal)):
+                print 'GPIO selected: {0}'.format(self.gpioChoiceVar.get())
+                self.gpioSelect_bttn.configure(bg="#33ff33")
+            else:
+                print 'GPIO Choice Error... unexpected communication error!'
 
 ##################################################################################
 
@@ -783,15 +790,17 @@ class makeGui:
         if self.readFromLeft:
             self.jslot = self.jslots[0]
             self.slot = bridgeDict[self.jslot]
-            #self.myBus.write(self.fanout, [0x02])
+            if self.fanoutStatus:
+                self.myBus.write(self.fanout, [self.channels[1]])
             if self.jslot in [2,3,4,5]:
-               self.myBus.write(self.ccm, [0x02^0x8])
+                self.myBus.write(self.ccm, [0x02^0x8])
             if self.jslot in [7,8,9,10]:
-               self.myBus.write(self.ccm, [0x20^0x8])
+                self.myBus.write(self.ccm, [0x20^0x8])
         else:
             self.jslot = self.jslots[1]
             self.slot = bridgeDict[self.jslot]
-            #self.myBus.write(self.fanout, [0x01])
+            if self.fanoutStatus:
+                self.myBus.write(self.fanout, [self.channels[0]])
             if self.jslot in [18,19,20,21]:
                 self.myBus.write(self.ccm,[0x10^0x8])
             if self.jslot in [23,24,25,26]:

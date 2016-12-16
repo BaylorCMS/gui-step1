@@ -20,11 +20,11 @@ import time
 
 # Teststand class pings Raspberry Pi
 class Teststand:
-    def __init__(self, board=False, calibration=False, ip=config.ip_address):
+    def __init__(self, calibration=False, ip=config.ip_address):
         # Include calibraiton unit.
         self.calibrate = calibration
         # Use fanout board with channels.
-        self.board = board
+        self.board = config.board
         self.channels = config.channels
         # MyPi (ip address)
         self.pi = ip
@@ -219,10 +219,10 @@ class Teststand:
         batch = self.myBus.sendBatch()
         error_code = batch[-1][0]
         if error_code == '1':
-            print "Set GPIO output mode fail for channel {0}".format(ch)
+            print "Set GPIO output mode fail"
             return False
         else:
-            print "Set GPIO output mode successful for channel {0}".format(ch)
+            print "Set GPIO output mode successful"
             return True
 
     # Select jslot, open channel on ngCCM Emulator.
@@ -438,8 +438,8 @@ def runStand():
 
 # Only run if scripts.py is main... otherwise don't run (if imported as library).
 if __name__ == '__main__':
-    runSlot()
-    #runStand()
+    #runSlot()
+    runStand()
 
 
 
