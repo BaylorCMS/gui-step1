@@ -23,9 +23,7 @@ class Teststand:
     def __init__(self, calibration=False, ip=config.ip_address):
         # Include calibraiton unit.
         self.calibrate = calibration
-        # Use fanout board with channels.
-        self.board = config.board
-        self.channels = config.channels
+        
         # MyPi (ip address)
         self.pi = ip
         
@@ -33,12 +31,15 @@ class Teststand:
         self.gpioSelected = False       # Has GPIO been selected?
         self.piStatus     = False       # Can we ping the RaPi?
         self.busStatus    = False       # Can we connect a client websocket?
-
+ 
         # Define i2c addresses
-        self.gpio = config.gpio         # gpio i2c address
-        self.fanout = config.fanout     # fanout i2c address
-        self.ccm = config.ccm           # ngccm emulator i2c address
-        self.address = 0x19             # Qie Card in slot 1 i2c address (use for Toggle Igloo Power)
+        self.gpio           = config.gpio       # gpio i2c address
+        self.fanout         = config.fanout     # fanout i2c address
+        self.ccm            = config.ccm        # ngccm emulator i2c address
+        self.address        = config.powerSlot  # Qie Card in slot 4 i2c address (use for Toggle Igloo Power)
+        self.fanoutStatus   = config.board      # will a fanout board be used?
+        self.channels       = config.channels   # Fanout channels
+        
         self.active_slots = []          # Initialize with no active slots.
 
         # Is the OS Windows?

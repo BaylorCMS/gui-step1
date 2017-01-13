@@ -44,12 +44,12 @@ class makeGui:
             self.myBus = client.webBus(self.pi,0)
 
         # Define i2c addresses
-        self.gpio = config.gpio         # gpio i2c address
-        self.fanout = config.fanout     # fanout i2c address
-        self.ccm = config.ccm           # ngccm emulator i2c address
-        self.address = 0x1c             # Qie Card in slot 4 i2c address (use for Toggle Igloo Power)
-        self.fanoutStatus = 0           # 0 means don't use fanout board, 1 means use fanout board
-        self.channels = config.channels # Fanout channels
+        self.gpio           = config.gpio       # gpio i2c address
+        self.fanout         = config.fanout     # fanout i2c address
+        self.ccm            = config.ccm        # ngccm emulator i2c address
+        self.address        = config.powerSlot  # Qie Card in slot 4 i2c address (use for Toggle Igloo Power)
+        self.fanoutStatus   = config.board      # will a fanout board be used?
+        self.channels       = config.channels   # Fanout channels
 
         # Create an instance of initialTests
         self.initialTest = initialTests()
