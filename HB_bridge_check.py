@@ -36,7 +36,7 @@ def cmd2list(cmd):
     return list(int(c, 16) for c in cmd_list)
 
 if __name__ == "__main__":
-    # Send this command
-    cmd = "03 00 03 00 03 00 00 00 ff 00 ff"
-    send_to_bridge()
+
+    address = sys.argv[1]
+    send_to_bridge(int(address, 16))
 
