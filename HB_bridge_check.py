@@ -7,6 +7,9 @@
 import client
 import config
 import counter
+import sys
+
+from optparse import OptionParser
 
 # Raspberry Pi IP address
 pi = config.ip_address
@@ -24,10 +27,20 @@ def pulse(cmd):
     print "Sent: {0}".format(cmd)
     print "Received: {0}".format(m)
 
-def send_to_bridge():
+def read_from_bridge(address):
     counter.gpioReset()
     bus.write(config.ccm,[0x01])
-    bus.read(0x04,32)
+    bus.write(0x19, [address])
+    bus.read(0x19, 4)
+    m = bus.sendBatch()
+    print "Received: {0}".format(m)
+
+def write_to_bridge(address):
+    counter.gpioReset()
+    bus.write(config.ccm,[0x01])
+    #bus.write(0x19, [0x0b, 03])
+    bus.write(0x19, [address, 0xaa, 0xbb, 0xcc, 0xdd])
+    #bus.read(0x19, 4)
     m = bus.sendBatch()
     print "Received: {0}".format(m)
 
@@ -37,6 +50,11 @@ def cmd2list(cmd):
 
 if __name__ == "__main__":
 
+
+
     address = sys.argv[1]
-    send_to_bridge(int(address, 16))
+    #message = sys.argv[2]
+    #write_to_bridge(int(address, 16), int(message, 16))
+    write_to_bridge(int(address, 16))
+    read_from_bridge(int(address, 16))
 

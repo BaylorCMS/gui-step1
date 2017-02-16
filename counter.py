@@ -5,8 +5,8 @@ import time
 import config
 
 # Setup web bus and i2c addresses.
-bus = client.webBus(pi, 0)
 pi = config.ip_address
+bus = client.webBus(pi, 0)
 ccm = config.ccm
 gpio = config.gpio
 igloo = 0x09
