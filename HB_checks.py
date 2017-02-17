@@ -66,15 +66,41 @@ def read_unique_id():
     m = bus.sendBatch()
     print "Received: {0}".format(m)
 
-# To do later...
+def convert_temp_reading(data):
+    data_list = data.split()
+    data_MSB = data_list[1] 
+    data_LSB = data_list[2]
+    st = ((0xfc & int(data_LSB)) >> 2) + ((0xff & int(data_MSB)) << 6);
+    temp = -46.85 + 175.72 * float(st) / float(1 << 14);
+    return temp
+
+def convert_humidity_reading(data):
+    data_list = data.split()
+    data_MSB = data_list[1] 
+    data_LSB = data_list[2]
+    shu = ((0xfc & int(data_LSB)) >> 2) + ((0xff & int(data_MSB)) << 6);
+    humidity = -6.0 + 125.0 * float(shu) / float(1 << 14); 
+    return humidity
+
 def read_temperature():
     counter.gpioReset()
     bus.write(config.ccm,[mux_ccm_emu])
     bus.write(bridge_addr, [0x11, 0x05, 0x00, 0x00, 0x00]) # temperature sensor is at switch option 5
-    #bus.write(0x40, [0x00])
-    #bus.read(0x40, 4)
+    bus.write(0x40, [0xf3])
+    bus.read(0x40, 3)
     m = bus.sendBatch()
     print "Received: {0}".format(m)
+    print "Temperature is ", convert_temp_reading(m[3])
+
+def read_humidity():
+    counter.gpioReset()
+    bus.write(config.ccm,[mux_ccm_emu])
+    bus.write(bridge_addr, [0x11, 0x05, 0x00, 0x00, 0x00]) # temperature sensor is at switch option 5
+    bus.write(0x40, [0xf5])
+    bus.read(0x40, 3)
+    m = bus.sendBatch()
+    print "Received: {0}".format(m)
+    print "Humidity is ", convert_humidity_reading(m[3])
 
 def cmd2list(cmd):
     cmd_list = cmd.split(" ")
@@ -85,6 +111,10 @@ if __name__ == "__main__":
     parser = OptionParser()
     parser.add_option("--uniqueID", dest="uniqueID", default=False, 
                       action='store_true', help="Read the unique ID")
+    parser.add_option("--temperature", dest="temperature", default=False, 
+                      action='store_true', help="Read the temperature")
+    parser.add_option("--humidity", dest="humidity", default=False, 
+                      action='store_true', help="Read the relative humidity")
     parser.add_option("--igloo", dest="igloo", default=False, 
                       action='store_true', help="Communicate with igloo")
     parser.add_option("--bridge", dest="bridge", default=False, 
@@ -104,6 +134,12 @@ if __name__ == "__main__":
 
     if options.uniqueID:
         read_unique_id()
+
+    if options.temperature:
+        read_temperature()
+
+    if options.humidity:
+        read_humidity()
 
     if options.bridge:
         if options.read:
