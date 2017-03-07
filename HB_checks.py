@@ -13,9 +13,10 @@ bus = client.webBus(pi, 0)
 
 # I2C stuff
 mux_ccm_emu = 0x01
-bridge_addr = 0x19
+bridge_addr_base = 0x18
 
-def read_from_bridge(address, nbytes):
+
+def read_from_bridge(bridge_addr, address, nbytes):
     counter.gpioReset()
     bus.write(config.ccm,[mux_ccm_emu])
     bus.write(bridge_addr, [address])
@@ -23,7 +24,7 @@ def read_from_bridge(address, nbytes):
     m = bus.sendBatch()
     print "Received: {0}".format(m)
 
-def write_to_bridge(address, data):
+def write_to_bridge(bridge_addr, address, data):
     counter.gpioReset()
     bus.write(config.ccm,[mux_ccm_emu])
     to_write = [address]
@@ -32,7 +33,7 @@ def write_to_bridge(address, data):
     m = bus.sendBatch()
     print "Received: {0}".format(m)
 
-def read_from_igloo(address, nbytes, top=True):
+def read_from_igloo(bridge_addr, address, nbytes, top=True):
     counter.gpioReset()
     bus.write(config.ccm,[mux_ccm_emu])
     if top:
@@ -44,7 +45,7 @@ def read_from_igloo(address, nbytes, top=True):
     m = bus.sendBatch()
     print "Received: {0}".format(m)
 
-def write_to_igloo(address, data, top=True):
+def write_to_igloo(bridge_addr, address, data, top=True):
     counter.gpioReset()
     bus.write(config.ccm,[mux_ccm_emu])
     if top:
@@ -57,12 +58,16 @@ def write_to_igloo(address, data, top=True):
     m = bus.sendBatch()
     print "Received: {0}".format(m)
 
-def read_unique_id():
+def read_unique_id(bridge_addr):
+    print "bridge address:", bridge_addr
     counter.gpioReset()
     bus.write(config.ccm,[mux_ccm_emu])
     bus.write(bridge_addr, [0x11, 0x04, 0x00, 0x00, 0x00]) #put bridge multiplexer (address 0x11) to unique id (switch option 4)
     bus.write(0x50, [0x00]) # unique id chip is at location 0x50, and we need to first write 0 to it before reading
-    bus.read(0x50, 4) # actually read the unique id
+    bus.read(0x50, 8) # actually read the unique id
+    m = bus.sendBatch()
+    print "Received: {0}".format(m)
+    bus.write(bridge_addr, [0x11, 0x0c, 0x00, 0x00, 0x00]) # disable switch 
     m = bus.sendBatch()
     print "Received: {0}".format(m)
 
@@ -82,7 +87,7 @@ def convert_humidity_reading(data):
     humidity = -6.0 + 125.0 * float(shu) / float(1 << 14); 
     return humidity
 
-def read_temperature():
+def read_temperature(bridge_addr):
     counter.gpioReset()
     bus.write(config.ccm,[mux_ccm_emu])
     bus.write(bridge_addr, [0x11, 0x05, 0x00, 0x00, 0x00]) # temperature sensor is at switch option 5
@@ -92,7 +97,7 @@ def read_temperature():
     print "Received: {0}".format(m)
     print "Temperature is ", convert_temp_reading(m[3])
 
-def read_humidity():
+def read_humidity(bridge_addr):
     counter.gpioReset()
     bus.write(config.ccm,[mux_ccm_emu])
     bus.write(bridge_addr, [0x11, 0x05, 0x00, 0x00, 0x00]) # temperature sensor is at switch option 5
@@ -129,36 +134,37 @@ if __name__ == "__main__":
                       metavar="0xaa 0xbb", help="Data to write (as string with spaces as separator)")
     parser.add_option("--nbytes", dest="nbytes", default=4,
                       help="How many bytes to read",type='int')
+    parser.add_option("--slot", dest="slot", default=1,
+                      help="Which card slot to use",type='int')
     (options, args) = parser.parse_args()
 
-
     if options.uniqueID:
-        read_unique_id()
+        read_unique_id(bridge_addr_base + options.slot)
 
     if options.temperature:
-        read_temperature()
+        read_temperature(bridge_addr_base + options.slot)
 
     if options.humidity:
-        read_humidity()
+        read_humidity(bridge_addr_base + options.slot)
 
     if options.bridge:
         if options.read:
             print "Reading from bridge"
-            read_from_bridge(int(options.register,16), options.nbytes)
+            read_from_bridge(bridge_addr_base + options.slot, int(options.register,16), options.nbytes)
         if options.write:
             print "Writing to bridge"
             data = [int(a,16) for a in options.data.split()]
-            write_to_bridge(int(options.register,16), data)
+            write_to_bridge(bridge_addr_base + options.slot, int(options.register,16), data)
             print "Reading back from bridge"
-            read_from_bridge(int(options.register,16), len(data))
+            read_from_bridge(bridge_addr_base + options.slot, int(options.register,16), len(data))
 
     if options.igloo:
         if options.read:
             print "Reading from igloo"
-            read_from_igloo(int(options.register,16), options.nbytes)
+            read_from_igloo(bridge_addr_base + options.slot, int(options.register,16), options.nbytes)
         if options.write:
             print "Writing to igloo"
             data = [int(a,16) for a in options.data.split()]
-            write_to_igloo(int(options.register,16), data)
+            write_to_igloo(bridge_addr_base + options.slot, int(options.register,16), data)
             print "Reading back from igloo"
-            read_from_igloo(int(options.register,16), len(data))
+            read_from_igloo(bridge_addr_base + options.slot, int(options.register,16), len(data))
