@@ -1,9 +1,9 @@
 from client import webBus
 from operator import add
-b = webBus("pi7",0)
+#b = webBus("pi7",0)
 
 # Read from Igloo
-def readIgloo(slot, address, num_bytes=1):
+def readIgloo(b, slot, address, num_bytes=1):
     b.write(0x00,[0x06])
     b.write(slot,[0x11,0x03,0,0,0])
     b.write(0x09,[address])

@@ -22,7 +22,7 @@ import subprocess
 class makeGui:
     def __init__(self, parent):
         # Create a webBus instance
-        self.myBus = client.webBus("pi7",0)
+        self.myBus = client.webBus("192.168.1.41",0)
 
         # Create a permanent address of QCard
         self.address = 0x19
@@ -1051,11 +1051,8 @@ class makeGui:
                      2 : 0x19, 3 : 0x1A, 4 : 0x1B, 5 : 0x1C,
                      7 : 0x19, 8 : 0x1A, 9: 0x1B, 10: 0x1C }
 
-        ########################
-        #    HACK HACK HACK    #
-        ########################
         if self.readFromLeft:
-            self.jslot = 23#self.jslots[1]
+            self.jslot = self.jslots[1]
             self.slot = bridgeDict[self.jslot]
             if self.jslot in [18,19,20,21]:
     	        self.myBus.write(0x72, [0x01])
@@ -1064,7 +1061,7 @@ class makeGui:
          	self.myBus.write(0x72, [0x01])
                 self.myBus.write(0x74,[0x09])
         else:
-            self.jslot = 23#self.jslots[0]
+            self.jslot = self.jslots[0]
             self.slot = bridgeDict[self.jslot]
             if self.jslot in [2,3,4,5]:
                self.myBus.write(0x72, [0x02])
@@ -1072,8 +1069,6 @@ class makeGui:
             if self.jslot in [7,8,9,10]:
                self.myBus.write(0x72, [0x02])
                self.myBus.write(0x74, [0x28])
-
-        # END HACK
 
         self.myBus.sendBatch()
 
@@ -1113,11 +1108,11 @@ class makeGui:
         self.firmwareVerOtherEntry.set("0x"+data_well_done[4:8])
 
         # Getting temperature
-        self.tempEntry.set(str(round(temp.readManyTemps(self.slot, 10, "Temperature", "nohold"),4)))
+        self.tempEntry.set(str(round(temp.readManyTemps(self.myBus, self.slot, 10, "Temperature", "nohold"),4)))
 
         # Getting IGLOO firmware info
-        majorIglooVer = it.readIgloo(self.slot, 0x00)
-        minorIglooVer = it.readIgloo(self.slot, 0x01)
+        majorIglooVer = it.readIgloo(self.myBus, self.slot, 0x00)
+        minorIglooVer = it.readIgloo(self.myBus, self.slot, 0x01)
         # Parse IGLOO firmware info
         majorIglooVer = self.toHex(self.reverseBytes(majorIglooVer))
         minorIglooVer = self.toHex(self.reverseBytes(minorIglooVer))

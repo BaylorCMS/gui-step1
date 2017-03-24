@@ -2,7 +2,7 @@ from client import webBus
 import collections
 from checksumClass import Checksum
 # bus = webBus("pi5",0)
-bus = webBus("pi7",0)
+#bus = webBus("pi7",0)
 
 # binDataHappy = '0 01110000 00111100 10000011'
 # intDataHappy = '0 112 60 131'
@@ -70,7 +70,7 @@ function = {
 
 # We have used 0xF3 for nohold, which has worked for temp.
 
-def readTempHumi(slot, num_bytes, key, hold, verbosity=0):
+def readTempHumi(bus, slot, num_bytes, key, hold, verbosity=0):
     bus.write(0x00,[0x06])
     bus.write(slot,[0x11,0x05,0,0,0])
     bus.write(0x40,[triggerDict[key][hold]])
@@ -89,10 +89,10 @@ def readTempHumi(slot, num_bytes, key, hold, verbosity=0):
         print 'value: ', value
     return [crc,function[key](value)]
 
-def readManyTemps(slot,iterations,key,hold,verbosity=0):
+def readManyTemps(bus, slot,iterations,key,hold,verbosity=0):
     tempArray = []
     for i in xrange(iterations):
-        tempList = readTempHumi(slot,2,key,hold,verbosity)
+        tempList = readTempHumi(bus, slot,2,key,hold,verbosity)
         if verbosity > 0:
             print tempList
         tempArray.append(tempList)
