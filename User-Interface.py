@@ -33,8 +33,8 @@ class makeGui:
         # Create an instance of cardInformation
         self.cardInfo = cardInformation()
 
-	# Read info from left side?
-	self.readFromList = True
+        # Read info from left side?
+        self.readFromList = True
 
         # Make an empty list that will eventually contain all of
         # the active card slots
@@ -488,9 +488,9 @@ class makeGui:
         self.testPassState = ("Pass","Fail")
 
         #################################
-        ###               ###
+        ###                           ###
         ###       Info for Card       ###
-        ###               ###
+        ###                           ###
         #################################
 
         # Make a label for the uniqueID entry
@@ -963,12 +963,12 @@ class makeGui:
     # Duplicate of above function, but for non-event cases (IE hitting the "Clear" button)
     def infoValChangeNonevent(self):
         for i in range(len(self.testPassInfo)):
-                         if (self.testPassList[i].get() == "Fail"):
-                                 self.testPassInfo[i].configure(bg="#ff5555")
-                         elif (self.testPassList[i].get() == "Pass"):
-                                 self.testPassInfo[i].configure(bg="#70ff70")
-                         else:
-                                 self.testPassInfo[i].configure(bg="#CCDDFF")
+            if (self.testPassList[i].get() == "Fail"):
+                self.testPassInfo[i].configure(bg="#ff5555")
+            elif (self.testPassList[i].get() == "Pass"):
+                self.testPassInfo[i].configure(bg="#70ff70")
+            else:
+                self.testPassInfo[i].configure(bg="#CCDDFF")
 
 #############################################################################
 
@@ -990,12 +990,12 @@ class makeGui:
                         "J7 and J26" : [7, 26], "J8 and J25" : [8, 25],
                         "J9 and J24" : [9, 24], "J10 and J23" : [10, 23]}
 
-	gpioVals = newJSlotDict[self.gpioChoiceVar.get()]
+        gpioVals = newJSlotDict[self.gpioChoiceVar.get()]
         self.jslots = dictStringToInts[self.gpioChoiceVar.get()]
         print '\nGPIO '+self.gpioChoiceVar.get()+' values = '+str(gpioVals)
 
-	for gpioValsIndex in xrange(len(gpioVals)):
-	    gpioVal = gpioVals[gpioValsIndex]
+        for gpioValsIndex in xrange(len(gpioVals)):
+            gpioVal = gpioVals[gpioValsIndex]
             if gpioValsIndex == 0:
                 self.myBus.write(0x72, [0x02])
             else:
@@ -1028,13 +1028,13 @@ class makeGui:
             else:
                 print 'message = '+str(batch[-1])
                 print 'GPIO Choice Error... state of confusion!'
-        # print 'initial = '+str(batch)
+            # print 'initial = '+str(batch)
 
 ##################################################################################
 
     def getUniqueIDPress_left(self):
-	self.readFromLeft = True
-	self.getUniqueIDPress()
+        self.readFromLeft = True
+        self.getUniqueIDPress()
 
 ##################################################################################
 
@@ -1055,10 +1055,10 @@ class makeGui:
             self.jslot = self.jslots[1]
             self.slot = bridgeDict[self.jslot]
             if self.jslot in [18,19,20,21]:
-    	        self.myBus.write(0x72, [0x01])
+                self.myBus.write(0x72, [0x01])
                 self.myBus.write(0x74,[0x18])
             if self.jslot in [23,24,25,26]:
-         	self.myBus.write(0x72, [0x01])
+                self.myBus.write(0x72, [0x01])
                 self.myBus.write(0x74,[0x09])
         else:
             self.jslot = self.jslots[0]
