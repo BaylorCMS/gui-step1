@@ -33,6 +33,9 @@ class makeGui:
         # Create an instance of cardInformation
         self.cardInfo = cardInformation()
 
+	# Read info from left side?
+	self.readFromList = True
+
         # Make an empty list that will eventually contain all of
         # the active card slots
         self.outSlotNumbers = []
@@ -188,7 +191,7 @@ class makeGui:
         # Make and pack a listbox to pick which QIE card to talk to:
         self.info_nameBox = OptionMenu(self.info_subTop_frame, self.nameChoiceVar,
                           "Shaun Hogan","Caleb Smith","Adryanna Smith","Jordan Potarf",
-                          "John Lawrence","Andrew Baas","Mason Dorseth","Josh Hiltbrand")
+                          "John Lawrence","Andrew Baas","Mason Dorseth","Josh Hiltbrand","Joe Pastika")
         self.info_nameBox.pack(side=LEFT)
         self.nameChoiceVar.set("Choose Name") # initializes the OptionMenu
 
@@ -312,16 +315,6 @@ class makeGui:
             padx=frame_padx,
             pady=frame_pady
             )
-
-        # Make top 2_2 subframe
-        self.experi_subTop2_2_frame = Frame(self.experiment_frame,background="white")
-        self.experi_subTop2_2_frame.pack(
-                side=TOP,
-                ipadx=frame_ipadx,
-                ipady=frame_ipady,
-                padx=frame_padx,
-                pady=frame_pady
-                )
 
         # Make top 2_4_5 subframe
         self.experi_subTop2_4_5_frame = Frame(self.experiment_frame,background="white")
@@ -639,10 +632,15 @@ class makeGui:
         self.iglooToggle_entry.pack(side=RIGHT)
 
 
-        # Make a button to read the unique ID & firmware
-        self.experi_uniqueID_get = Button(self.experi_subTop2_5_frame, text ="Get Unique ID & Firmware Ver.", command=self.getUniqueIDPress)
-        self.experi_uniqueID_get.configure(bg="salmon")
-        self.experi_uniqueID_get.pack(side=TOP)
+        # Make a button to read the unique ID & firmware LEFT SIDE
+        self.experi_uniqueID_left_get = Button(self.experi_subTop2_5_frame, text ="Get Unique ID & Firmware Ver. from Left", command=self.getUniqueIDPress_left)
+        self.experi_uniqueID_left_get.configure(bg="CadetBlue1")
+        self.experi_uniqueID_left_get.pack(side=TOP)
+
+        # Make a button to read the unique ID & firmware RIGHT SIDE
+        self.experi_uniqueID_right_get = Button(self.experi_subTop2_5_frame, text ="Get Unique ID & Firmware Ver. from Right", command=self.getUniqueIDPress_right)
+        self.experi_uniqueID_right_get.configure(bg="lemon chiffon")
+        self.experi_uniqueID_right_get.pack(side=TOP)
 
         # Make a button to submit the unique ID & firmware
         self.experi_uniqueID_give = Button(self.experi_subTop2_5_frame, text ="Upload Unique ID & Firmware Ver.", command=self.infoSubmitButtonPress)
@@ -661,10 +659,10 @@ class makeGui:
 
         # Make a option menu for GPIO selection
         self.gpioSelect_box = OptionMenu(self.experi_subTop2_7_frame, self.gpioChoiceVar,
-                          "J2 and J18","J3 and J19","J4 and J20","J5 and J21",
-                          "J7 and J23","J8 and J24","J9 and J25","J10 and J26")
+                          "J2 and J21","J3 and J20","J4 and J19","J5 and J18",
+                          "J7 and J26","J8 and J25","J9 and J24","J10 and J23")
         self.gpioSelect_box.pack(side=LEFT)
-        self.gpioChoiceVar.set("J2 and J18")
+        self.gpioChoiceVar.set("J2 and J21")
 
         # Make a button to submit GPIO option
         self.gpioSelect_bttn = Button(self.experi_subTop2_8_frame, command=self.gpioBttnPress,
@@ -980,8 +978,6 @@ class makeGui:
                     "J5 and J21" : 0x49, "J7 and J23" : 0x2A, "J8 and J24" : 0x8A,
                     "J9 and J25" : 0xAA, "J10 and J26" : 0x4A}
 
-        bridgeDict = {"J18" : 0x19, "J19" : 0x1A, "J20": 0x1B, "J21" : 0x1C,
-                    "J23" : 0x19, "J24" : 0x1A, "J25": 0x1B, "J26" : 0x1C}
 
         # Full Backplane Functionality
         newJSlotDict = {"J2 and J21" : [0x29,0x49], "J3 and J20" : [0x89,0xA9],
@@ -989,52 +985,96 @@ class makeGui:
                         "J7 and J26" : [0x2A,0x4A], "J8 and J25" : [0x8A,0xAA],
                         "J9 and J24" : [0xAA,0x8A], "J10 and J23" : [0x4A,0x2A]}
 
-        gpioVal = jSlotDict[self.gpioChoiceVar.get()]
-        self.jslot = int(self.gpioChoiceVar.get()[-2:])
-        self.slot = bridgeDict[self.gpioChoiceVar.get()[-3:]]
-        print '\nGPIO '+self.gpioChoiceVar.get()+' value = '+str(gpioVal)
-        print 'Bridge I2C Address = '+str(hex(self.slot))
+        dictStringToInts = {"J2 and J21" : [2, 21], "J3 and J20" : [3, 20],
+                        "J4 and J19" : [4, 19], "J5 and J18" : [5, 18],
+                        "J7 and J26" : [7, 26], "J8 and J25" : [8, 25],
+                        "J9 and J24" : [9, 24], "J10 and J23" : [10, 23]}
 
-	self.myBus.write(0x72, [0x01])
-        batch = self.myBus.sendBatch()
-        self.myBus.write(0x74, [0x08]) # PCA9538 is bit 3 on ngccm mux
-        # myBus.write(0x70,[0x01,0x00]) # GPIO PwrEn is register 3
-        #power on and reset
-            #register 3 is control reg for i/o modes
-        self.myBus.write(0x70,[0x03,0x00]) # sets all GPIO pins to 'output' mode
-        self.myBus.write(0x70,[0x01,0x08])
-        self.myBus.write(0x70,[0x01,0x18]) # GPIO reset is 10
-        self.myBus.write(0x70,[0x01,0x08])
+	gpioVals = newJSlotDict[self.gpioChoiceVar.get()]
+        self.jslots = dictStringToInts[self.gpioChoiceVar.get()]
+        print '\nGPIO '+self.gpioChoiceVar.get()+' values = '+str(gpioVals)
 
-        #jtag selectors finnagling for slot 26
-        self.myBus.write(0x70,[0x01,gpioVal])
-
-        # myBus.write(0x70,[0x03,0x08])
-        self.myBus.read(0x70,1)
-        batch = self.myBus.sendBatch()
-        print 'GPIO Batch = '+str(batch)
-
-        if (batch[-1] == "1 0"):
-            print "I2C communication error with GPIO!"
-            self.gpioSelect_bttn.configure(bg="#ff3333")
-        elif (batch[-1] == "0 "+str(gpioVal)):
-            print "GPIO " + str(jSlotDict[self.gpioChoiceVar.get()]) + " Opened!"
-            self.gpioSelect_bttn.configure(bg="#33ff33")
-
-        else:
-            print 'message = '+str(batch[-1])
-            print 'GPIO Choice Error... state of confusion!'
+	for gpioValsIndex in xrange(len(gpioVals)):
+	    gpioVal = gpioVals[gpioValsIndex]
+            if gpioValsIndex == 0:
+                self.myBus.write(0x72, [0x02])
+            else:
+                self.myBus.write(0x72, [0x01])
+            batch = self.myBus.sendBatch()
+            self.myBus.write(0x74, [0x08]) # PCA9538 is bit 3 on ngccm mux
+            # myBus.write(0x70,[0x01,0x00]) # GPIO PwrEn is register 3
+            #power on and reset
+                #register 3 is control reg for i/o modes
+            self.myBus.write(0x70,[0x03,0x00]) # sets all GPIO pins to 'output' mode
+            self.myBus.write(0x70,[0x01,0x08])
+            self.myBus.write(0x70,[0x01,0x18]) # GPIO reset is 10
+            self.myBus.write(0x70,[0x01,0x08])
+    
+            #jtag selectors finnagling for slot 26
+            self.myBus.write(0x70,[0x01,gpioVal])
+    
+            # myBus.write(0x70,[0x03,0x08])
+            self.myBus.read(0x70,1)
+            batch = self.myBus.sendBatch()
+            print 'GPIO Batch = '+str(batch)
+    
+            if (batch[-1] == "1 0"):
+                print "I2C communication error with GPIO!"
+                self.gpioSelect_bttn.configure(bg="#ff3333")
+            elif (batch[-1] == "0 "+str(gpioVal)):
+                print "GPIO " + str(newJSlotDict[self.gpioChoiceVar.get()]) + " Opened!"
+                self.gpioSelect_bttn.configure(bg="#33ff33")
+    
+            else:
+                print 'message = '+str(batch[-1])
+                print 'GPIO Choice Error... state of confusion!'
         # print 'initial = '+str(batch)
 
 ##################################################################################
 
+    def getUniqueIDPress_left(self):
+	self.readFromLeft = True
+	self.getUniqueIDPress()
+
+##################################################################################
+
+    def getUniqueIDPress_right(self):
+        self.readFromLeft = False
+        self.getUniqueIDPress()
+
+##################################################################################
+
     def getUniqueIDPress(self):
-        if self.jslot in [18,19,20,21]:
-	    self.myBus.write(0x72, [0x01])
-            self.myBus.write(0x74,[0x18])
-        if self.jslot in [23,24,25,26]:
-	    self.myBus.write(0x72, [0x01])
-            self.myBus.write(0x74,[0x9])
+
+        bridgeDict = { 18 : 0x19, 19 : 0x1A, 20: 0x1B, 21 : 0x1C,
+                    23 : 0x19, 24 : 0x1A, 25: 0x1B, 26 : 0x1C,
+                     2 : 0x19, 3 : 0x1A, 4 : 0x1B, 5 : 0x1C,
+                     7 : 0x19, 8 : 0x1A, 9: 0x1B, 10: 0x1C }
+
+        ########################
+        #    HACK HACK HACK    #
+        ########################
+        if self.readFromLeft:
+            self.jslot = 23#self.jslots[1]
+            self.slot = bridgeDict[self.jslot]
+            if self.jslot in [18,19,20,21]:
+    	        self.myBus.write(0x72, [0x01])
+                self.myBus.write(0x74,[0x18])
+            if self.jslot in [23,24,25,26]:
+         	self.myBus.write(0x72, [0x01])
+                self.myBus.write(0x74,[0x09])
+        else:
+            self.jslot = 23#self.jslots[0]
+            self.slot = bridgeDict[self.jslot]
+            if self.jslot in [2,3,4,5]:
+               self.myBus.write(0x72, [0x02])
+               self.myBus.write(0x74, [0x0A])
+            if self.jslot in [7,8,9,10]:
+               self.myBus.write(0x72, [0x02])
+               self.myBus.write(0x74, [0x28])
+
+        # END HACK
+
         self.myBus.sendBatch()
 
         # slot = 0x19
