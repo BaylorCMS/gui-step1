@@ -1,4 +1,6 @@
-# SimpleScripts to select GPIO and read from slots.
+# Teststand class to select GPIO and read from slots.
+# Used to program Igloo FPGAs
+# Used to read from QIE cards
 
 # CERN, Building 904
 # October 2016
@@ -18,9 +20,17 @@ import platform
 import config
 import time
 
+def writeToLog(logFile, line): 
+    timeStamp = datetime.now()
+    line = "{0} {1}".format(timeStamp, line)
+    print line
+    with open(logFile, 'a') as f:
+        print >> f, line
+
 # Teststand class pings Raspberry Pi
 class Teststand:
     def __init__(self, board=True, calibration=False, ip=config.ip_address):
+        self.logFile = "teststand.log"
         # Include calibraiton unit.
         self.calibrate = calibration
         # Use fanout board with channels.
@@ -62,7 +72,7 @@ class Teststand:
                 self.myBus = client.webBus(self.pi,0)
             except:
                 self.busStatus = False
-                print 'Client Websocket Connection Error: No bus for you... sadness, it\'s true!'
+                writeToLog(self.logFile, 'Client Websocket Connection Error: No bus for you... sadness, it\'s true!')
                 return
 
             # Client websocket connected sucessfully.
@@ -74,15 +84,15 @@ class Teststand:
             self.gpioReset()
 
             # Find active slots only if client websocket is connected.
-            print "Finding active slots..."
+            writeToLog(self.logFile, "Finding active slots...")
             if self.calibrate:
                 self.slot_list = [2,3,4,5,7,8,9,10,12]
             else:
                 self.slot_list = [2,3,4,5,7,8,9,10,18,19,20,21,23,24,25,26]
             self.active_slots = self.findActiveSlots()
-            print "Active J-Slots: {0}".format(self.active_slots)
+            writeToLog(self.logFile, "Active J-Slots: {0}".format(self.active_slots))
         else:
-            print "Raspberry Pi disconnected."
+            writeToLog(self.logFile, "Raspberry Pi disconnected.")
 
     #################################
     ###                           ###
@@ -93,16 +103,18 @@ class Teststand:
 
 ##################################################################################
 
+    def setLogFile(self, logFile):
+        self.logFile = logFile
 
     # Test Raspberry Pi Connection
     def pingPi(self):
-        print "Pinging Raspberry Pi: {0}".format(self.ping)
+        writeToLog(self.logFile, "Pinging Raspberry Pi: {0}".format(self.ping))
         pingStatus = os.system(self.ping)
         if pingStatus == 0:
-            print "Raspberry Pi Connected: {0}".format(self.pi)
+            writeToLog(self.logFile, "Raspberry Pi Connected: {0}".format(self.pi))
             self.piStatus = True
         else:
-            print "Raspberry Pi Connection Error: {0}".format(self.pi)
+            writeToLog(self.logFile, "Raspberry Pi Connection Error: {0}".format(self.pi))
             self.piStatus = False
 
     def reverseBytes(self, message):
@@ -156,7 +168,7 @@ class Teststand:
         # Remove error code, family name, checksum
         error = message_list[0]
         if error == '1':
-            print "I2C_ERROR"
+            writeToLog(self.logFile, "I2C_ERROR")
         message_list = message_list[1:]
         s = " "
         return s.join(message_list)
@@ -169,7 +181,7 @@ class Teststand:
         self.myBus.read(self.card_i2c_address, num_bytes)
         message = self.myBus.sendBatch()[-1]
         #if message[0] != '0':
-        #    print 'Bridge I2C_ERROR'
+        #    writeToLog(self.logFile, 'Bridge I2C_ERROR')
         return self.toHex(self.reverseBytes(message[2:]))
 
     # Function to write to Bridge FPGA
@@ -185,8 +197,8 @@ class Teststand:
         try:
             i2cSelectValue = iglooSelectDictionary[igloo]
         except KeyError:
-            print "In readIgloo(): igloo = {0} which is not 'top' or 'bot'".format(igloo)
-            print "In readIgloo(): i2cSelectValue = {0} (should be 0x03 or 0x06, -1 is the default if not set)".format(i2cSelectValue)
+            writeToLog(self.logFile, "In readIgloo(): igloo = {0} which is not 'top' or 'bot'".format(igloo))
+            writeToLog(self.logFile, "In readIgloo(): i2cSelectValue = {0} (should be 0x03 or 0x06, -1 is the default if not set)".format(i2cSelectValue))
             sys.exit(1)
         self.myBus.write(0x00,[0x06])
         self.selectSlot(self.jslot) # does multiplex
@@ -196,8 +208,8 @@ class Teststand:
         self.myBus.read(self.iglooAddress, num_bytes)
         message = self.myBus.sendBatch()[-1]
         if message[0] != '0':
-            print 'In readIgloo(): Igloo I2C_ERROR'
-        print "In readIgloo(): Reading {0} Igloo; message = {1}".format(igloo, message)
+            writeToLog(self.logFile, 'In readIgloo(): Igloo I2C_ERROR')
+        writeToLog(self.logFile, "In readIgloo(): Reading {0} Igloo; message = {1}".format(igloo, message))
         return self.toHex(self.reverseBytes(message[2:]))
 
 
@@ -227,10 +239,10 @@ class Teststand:
         batch = self.myBus.sendBatch()
         error_code = batch[-1][0]
         if error_code == '1':
-            print "GPIO reset fail"
+            writeToLog(self.logFile, "GPIO reset fail")
             return False
         else:
-            print "GPIO reset successful"
+            writeToLog(self.logFile, "GPIO reset successful")
             return True
 
     
@@ -251,10 +263,10 @@ class Teststand:
         batch = self.myBus.sendBatch()
         error_code = batch[-1][0]
         if error_code == '1':
-            print "outputMode(): Set GPIO output mode ERROR"
+            writeToLog(self.logFile, "outputMode(): Set GPIO output mode ERROR")
             return False
         else:
-            print "outputMode(): Set GPIO output mode SUCCESS"
+            writeToLog(self.logFile, "outputMode(): Set GPIO output mode SUCCESS")
             return True
 
     # Select jslot, open channel on ngCCM Emulator.
@@ -327,23 +339,23 @@ class Teststand:
         self.myBus.read(0x70,1)
         batch = self.myBus.sendBatch()
         message = batch[-1]
-        print "GPIO Batch = "+str(batch)
+        writeToLog(self.logFile, "GPIO Batch = "+str(batch))
     
         if (message == "1 0"):
-            print "In gpioBttnPress(): GPIO I2C_ERROR"
-            print self.I2C_ERROR_HELP
+            writeToLog(self.logFile, "In gpioBttnPress(): GPIO I2C_ERROR")
+            writeToLog(self.logFile, self.I2C_ERROR_HELP)
             return
         elif (message == "0 "+str(gpioVal)):
-            print "GPIO Success: message is {0}".format(message)
+            writeToLog(self.logFile, "GPIO Success: message is {0}".format(message))
     
         else:
-            print "GPIO Error: unexpected message is {0}".format(message)
+            writeToLog(self.logFile, "GPIO Error: unexpected message is {0}".format(message))
 
         
         # select JTAG to program top/bottom igloo using Bridge register BRDG_ADDR_IGLO_CONTROL: 0x22
         iglooControl = 0x22
         message = self.readBridge(iglooControl,4)
-        print "Reading from BRDG_ADDR_IGLO_CONTROL before selecting JTAG: message = {0}".format(message)
+        writeToLog(self.logFile, "Reading from BRDG_ADDR_IGLO_CONTROL before selecting JTAG: message = {0}".format(message))
         value = self.getValue(message)
         # select top (0) or bottom (1) igloo to program; maintain settings for other bits
         if igloo == "top":
@@ -351,13 +363,13 @@ class Teststand:
         elif igloo == "bot":
             value = value | 0x001
         else:
-            print "In selectGpio(): ERROR; Igloo is '{0}' which is not top or bot".format(igloo)
+            writeToLog(self.logFile, "In selectGpio(): ERROR; Igloo is '{0}' which is not top or bot".format(igloo))
         messageList = self.getMessageList(value,4)
         self.writeBridge(iglooControl,messageList)
         message = self.readBridge(iglooControl,4)
-        print "Reading from BRDG_ADDR_IGLO_CONTROL after selecting JTAG: message = {0}".format(message)
+        writeToLog(self.logFile, "Reading from BRDG_ADDR_IGLO_CONTROL after selecting JTAG: message = {0}".format(message))
         
-        print "Ready to program {0} igloo".format(igloo)
+        writeToLog(self.logFile, "Ready to program {0} igloo".format(igloo))
 
 
 
@@ -366,7 +378,7 @@ class Teststand:
     # Read Unique ID and Firmware Versions from given jslot
     def readInfo(self, jslot):
         self.selectSlot(jslot)
-        print 'Read Slot: J'+str(self.jslot)
+        writeToLog(self.logFile, 'Read Slot: J'+str(self.jslot))
 
         # Getting unique ID
         # 0x000000ea9c8b
@@ -377,19 +389,19 @@ class Teststand:
         raw_bus = self.myBus.sendBatch()
         raw_bus = raw_bus[-1]
         if raw_bus[0] != '0':
-            print 'Read Unique ID I2C_ERROR!'
+            writeToLog(self.logFile, 'Read Unique ID I2C_ERROR!')
             return False
         # Remove error code [0], family code [1] and checksum [-1]
         salted_bus = self.errorCode(raw_bus)
         #salted_bus = self.serialNum(raw_bus)
         cooked_bus = self.reverseBytes(salted_bus)
         self.unique_id = self.toHex(cooked_bus)
-        print 'Unique ID: {0}'.format(self.unique_id)
+        writeToLog(self.logFile, 'Unique ID: {0}'.format(self.unique_id))
 
         # Getting bridge firmware
         raw_data = self.readBridge(0x04, 4)
         data_well_done = raw_data[2:]
-        print 'Bridge FW: 0x'+str(data_well_done)
+        writeToLog(self.logFile, 'Bridge FW: 0x'+str(data_well_done))
         self.bridge_fw_maj = "0x"+data_well_done[0:2]    #these are the worst (best?) variable names ever
         self.bridge_fw_min = "0x"+data_well_done[2:4]
         self.bridge_fw_oth = "0x"+data_well_done[4:8]
@@ -402,8 +414,8 @@ class Teststand:
         self.top_igloo_fw_min = self.readIgloo("top", 0x01)
         self.bot_igloo_fw_maj = self.readIgloo("bot", 0x00)
         self.bot_igloo_fw_min = self.readIgloo("bot", 0x01)
-        print 'Top Igloo FW: {0} {1}'.format(self.top_igloo_fw_maj, self.top_igloo_fw_min)
-        print 'Bottom Igloo FW: {0} {1}'.format(self.bot_igloo_fw_maj, self.bot_igloo_fw_min)
+        writeToLog(self.logFile, 'Top Igloo FW: {0} {1}'.format(self.top_igloo_fw_maj, self.top_igloo_fw_min))
+        writeToLog(self.logFile, 'Bottom Igloo FW: {0} {1}'.format(self.bot_igloo_fw_maj, self.bot_igloo_fw_min))
 
         # Return Dictionary
         return self.getInfo()
@@ -427,7 +439,7 @@ class Teststand:
         cardInfo["temperature"]         = self.temp
         cardInfo["DateRun"]             = str(datetime.now())
 
-        #print "Card info recorded. Merci beaucoup!"
+        #writeToLog(self.logFile, "Card info recorded. Merci beaucoup!")
         return cardInfo
 
     # Tests for communication with Bridge.
@@ -435,7 +447,7 @@ class Teststand:
         self.jslot = jslot
         onesZeros = self.readBridge(0x0A, 4)
         value = '0xaaaaaaaa'
-        #print "Bridge OnesZeros: {0}".format(onesZeros)
+        #writeToLog(self.logFile, "Bridge OnesZeros: {0}".format(onesZeros))
         if onesZeros == value:
             return True
         else:
@@ -448,7 +460,7 @@ class Teststand:
         self.top_igloo_fw_min = self.readIgloo("top", 0x01)
         self.bot_igloo_fw_maj = self.readIgloo("bot", 0x00)
         self.bot_igloo_fw_min = self.readIgloo("bot", 0x01)
-        #print "Igloo FW: {0} {1}".format(igloo_fw_maj, igloo_fw_min)
+        #writeToLog(self.logFile, "Igloo FW: {0} {1}".format(igloo_fw_maj, igloo_fw_min))
         return "top: {0} {1} bot: {2} {3}".format(self.top_igloo_fw_maj, self.top_igloo_fw_min,
                                                   self.bot_igloo_fw_maj, self.bot_igloo_fw_min)
 
@@ -460,7 +472,7 @@ class Teststand:
             if hiB:
                 # we should not read from Igloos before they are programmed.
                 #hiI = self.hiDerIgloo(slot)
-                #print "J{0} : Igloo FW {1}".format(slot, hiI)
+                #writeToLog(self.logFile, "J{0} : Igloo FW {1}".format(slot, hiI))
                 slots.append(slot)
         return slots
             
@@ -482,22 +494,22 @@ slot_list = [2,3,4,5,7,8,9,10,12,18,19,20,21,23,24,25,26]
 # Pi Ip Address: default is 192.168.1.41
 def runSlot():
     if len(sys.argv) != 2:
-        print "Enter J-Slot to select and read"
+        writeToLog(self.logFile, "Enter J-Slot to select and read")
     else:
         slot = int(sys.argv[1])
         if slot not in slot_list:
-            print "Please select J-Slot from {0}".format(slot_list)
+            writeToLog(self.logFile, "Please select J-Slot from {0}".format(slot_list))
         else:
             ts = Teststand()
             if ts.piStatus and ts.busStatus:
                 hiB = ts.hiDerBridge(slot)
-                print "Hi Der Bridge: {0}".format(hiB)
+                writeToLog(self.logFile, "Hi Der Bridge: {0}".format(hiB))
                 if hiB:
                     hiI = ts.hiDerIgloo(slot)
-                    print "Hi Der Igloo: {0}".format(hiI)
+                    writeToLog(self.logFile, "Hi Der Igloo: {0}".format(hiI))
                     ts.selectGpio(slot)
                     cardInfo = ts.readInfo(slot)
-                    #print cardInfo
+                    #writeToLog(self.logFile, cardInfo)
 
 # Get information for all active slots.
 # Windows True for Windows OS, False for Linux and OSX
@@ -506,7 +518,7 @@ def runStand():
     ts = Teststand()
     if ts.piStatus and ts.busStatus:
         info = ts.readActiveSlots()
-        #print info
+        #writeToLog(self.logFile, info)
 
 # Only run if scripts.py is main... otherwise don't run (if imported as library).
 if __name__ == '__main__':
