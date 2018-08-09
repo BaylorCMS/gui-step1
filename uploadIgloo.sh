@@ -75,7 +75,8 @@ rm $jsonLoc/*$jsonTag
 
 # 4. upload results to database
 # include option -w for no color
-ssh $remoteHost $remoteScript -w
+# include 3 for step 3
+ssh $remoteHost $remoteScript -w 3
 
 if [ $? -eq 0 ]
 then
